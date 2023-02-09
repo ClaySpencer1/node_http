@@ -1,46 +1,58 @@
-console.log("Hello World!\n==========\n");
-
-// Exercise 1 Section
-console.log("EXERCISE 1:\n==========\n");
-
 const http = require("http");
-const { json } = require("stream/consumers");
 
-// Finish setting up the server
 const port = 3000;
 
 // Creates a server object
 http
-  .createServer(function (req, res) {
-    const url = req.url;
-    res.setHeader("Content-Type", "text/html");
-    const method = req.method;
-    console.log("Request Made with this Method", req.method);
+  .createServer((request, response) => {
+    const url = request.url;
+    console.log("The url is:", url);
+    const method = request.method;
+    response.setHeader("Content-Type", "text/html");
+    console.log("Request made with this method: ", request.method);
     const dataChunksArray = [];
 
-    req.on("data", (chunk) => {
+    request.on("data", (chunk) => {
+        console.log("Chunk", chunk);
         dataChunksArray.push(chunk);
     });
 
-    req.on("end", () => {
-       const body = JSON.parse(Buffer.concat(dataChunksArray).toString());
-       const responseBody = { method, url, body };
+    request.on("end", () => {
+        //Handle all of the POST requests in this function
+        if (method == "POST" && dataChunksArray.length > 0){
+            console.log(dataChunksArray);
+            const body = JSON.parse(Buffer.concat(dataChunksArray).toString());
+            const responseBody = { method, url, body};
 
-       res.write(JSON.stringify(responseBody));
-       res.end();
-    })
+            if (url == "/"){
+                response.writeHead(200, "OK");
+                response.write("<h1>Message Received</h1>");
+            } else if (url == "/echo"){
+                response.writeHead(200, "OK");
+                response.write(JSON.stringify(responseBody));
+            }
+        }
+        
+        response.end();
+    });
 
-    if (url == "/") {
-      res.statusCode = 200;
-      res.write("<h1>Home: Clay's Crib</h1>");
-    } else if (url == "/about") {
-      res.statusCode = 200;
-      res.write("About - I am Clay");
-    }else if (url == "/contact"){
-        res.statusCode = 200;
-        res.write("<h1>Contact Me: Clay@fakeemail.com</h1>");
+    if (url == "/"){
+        if (method == "GET"){
+            response.write("<h1>Home: Clay's Pad</h1>");
+            response.statusCode = 200;
+            response.end();
+        }
+    } else if (url == "/about"){
+        response.statusCode = 200;
+        response.write("About - I am Clay");
+        response.end();
+    } else if (url == "/contact"){
+        response.statusCode = 200;
+        response.write("<h1>Contact Me: Clay@fakemail.net</h1>");
+        response.end();
     }
-
-    res.end();
+    
   })
-  .listen(3000);
+  .listen(port, () => {
+    console.log("Server listening on port: " + port);
+  });
